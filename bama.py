@@ -1,8 +1,10 @@
 import aiohttp
 import asyncio
-import aiosqlite
 import time
 import logging
+from sqlite_conntection import insert_data
+
+
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -65,52 +67,10 @@ async def fetch_all_data(urls):
         return results
 
 async def main():
-    urls = [f'https://bama.ir/cad/api/search?pageIndex={i}' for i in range(10)]
+    urls = [f'https://bama.ir/cad/api/search?pageIndex={i}' for i in range(100)]
+    results = await fetch_all_data(urls)
+    await insert_data(results)
 
-    async with aiosqlite.connect('cars.db') as db:
-        async with db.cursor() as cursor:
-            try:
-                await cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS cars_new (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        url TEXT,
-                        title TEXT,
-                        time TEXT,
-                        year TEXT,
-                        image TEXT,
-                        mileage TEXT,
-                        location TEXT,
-                        description TEXT,
-                        created_at TEXT,
-                        price TEXT
-                    );
-                ''')
-                await db.commit()
-                logger.info("Table created successfully")
-
-                results = await fetch_all_data(urls)
-
-                async with db.cursor() as cursor:
-                    insert_count = 0
-                    start_time = time.time()
-                    for url, cars in results:
-                        if not cars:
-                            logger.error(f"Failed to fetch data from {url}")
-                            continue
-
-                        for car in cars:
-                            await cursor.execute('''
-                                INSERT INTO cars_new (url, title, time, year, mileage, location, description, image, created_at, price)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                            ''', car)
-                            insert_count += 1
-
-                    await db.commit()
-                    end_time = time.time()
-                    logger.info(f"Inserted {insert_count} records into the database in {end_time - start_time:.2f} seconds.")
-
-            except aiosqlite.Error as e:
-                logger.error(f"An error occurred with the database: {e}")
 
 asyncio.run(main())
 
