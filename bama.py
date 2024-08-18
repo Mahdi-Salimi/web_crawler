@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-sem = asyncio.Semaphore(5) 
+sem = asyncio.Semaphore(5) # in main
 def extract_car_data(response_text):
     pattern = r'"type":"ad".+?url":"(.+?)".+?title":"(.+?)".+?time":"(.+?)".+?year":"(.+?)".+?mileage":"(.+?)".+?location":"(.+?)".+?description":"(.+?)".+?"image":(.+?),"modified_date":"(.+?)".+?price":"(.+?)"'
     cars = re.findall(pattern, response_text)
@@ -105,3 +105,5 @@ async def main():
                 logger.error(f"An error occurred with the database: {e}")
 
 asyncio.run(main())
+
+# semaphore in main , because unwanted event loops
