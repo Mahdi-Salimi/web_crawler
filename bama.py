@@ -10,10 +10,15 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 sem = asyncio.Semaphore(5) # in main
-def extract_car_data(response_text):
-    pattern = r'"type":"ad".+?url":"(.+?)".+?title":"(.+?)".+?time":"(.+?)".+?year":"(.+?)".+?mileage":"(.+?)".+?location":"(.+?)".+?description":"(.+?)".+?"image":(.+?),"modified_date":"(.+?)".+?price":"(.+?)"'
-    cars = re.findall(pattern, response_text)
-    return cars
+def extract_car_json_data(response_json):
+    car = response_json['data']['ads'][0]['detail']
+    detail_keys = ['url', 'title', 'time', 'year',  'mileage', 'location', 'description', 'image',
+                   'modified_date']
+
+    price = response_json['data']['ads'][0]['price']['price']
+    values = [car[key] for key in detail_keys]
+    values.append(price)
+    return values
 
 async def fetch_data(session, url):
     async with sem:
@@ -24,8 +29,8 @@ async def fetch_data(session, url):
                 logger.info(f"Response status for {url}: {response.status}")
 
                 if response.status == 200:
-                    response_text = await response.text()
-                    cars = extract_car_data(response_text)
+                    response_json = await response.json()
+                    cars = extract_car_json_data(response_json)
                     end_time = time.time()
                     logger.info(f"Fetched {len(cars)} cars from {url} in {end_time - start_time:.2f} seconds")
                     return url, cars
@@ -36,7 +41,7 @@ async def fetch_data(session, url):
             logger.error(f"Client error fetching data from {url}: {e}")
             return url, []
         except asyncio.TimeoutError as e:
-            logger.error(f"Timeout error fetching data from {url}: {e}")
+            logger.error(f"Timeout error fetching data from {url}: {e}") # set time out
             return url, []
         except Exception as e:
             logger.error(f"Unexpected error fetching data from {url}: {e}")
@@ -63,7 +68,7 @@ async def main():
         async with db.cursor() as cursor:
             try:
                 await cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS car_test_3 (
+                    CREATE TABLE IF NOT EXISTS cars_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         url TEXT,
                         title TEXT,
@@ -85,17 +90,16 @@ async def main():
                 async with db.cursor() as cursor:
                     insert_count = 0
                     start_time = time.time()
-                    for url, cars in results:
-                        if not cars:
+                    for url, car in results:
+                        if not car:
                             logger.error(f"Failed to fetch data from {url}")
                             continue
 
-                        for car in cars:
-                            await cursor.execute('''
-                                INSERT INTO car_test_3 (url, title, time, year, mileage, location, description, image, created_at, price)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                            ''', car)
-                            insert_count += 1
+                        await cursor.execute('''
+                            INSERT INTO cars_new (url, title, time, year, mileage, location, description, image, created_at, price)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        ''', car)
+                        insert_count += 1
 
                     await db.commit()
                     end_time = time.time()

@@ -5,7 +5,11 @@ aiosqlite==0.20.0
 attrs==24.2.0
 frozenlist==1.4.1
 idna==3.7
+iniconfig==2.0.0
 multidict==6.0.5
+packaging==24.1
+pluggy==1.5.0
+pytest==8.3.2
 typing_extensions==4.12.2
 websockets==12.0
 yarl==1.9.4
