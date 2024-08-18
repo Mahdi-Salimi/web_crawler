@@ -1,7 +1,6 @@
 import aiohttp
 import asyncio
 import aiosqlite
-import re
 import time
 import logging
 
@@ -11,14 +10,18 @@ logger = logging.getLogger(__name__)
 
 sem = asyncio.Semaphore(5) # in main
 def extract_car_json_data(response_json):
-    car = response_json['data']['ads'][0]['detail']
-    detail_keys = ['url', 'title', 'time', 'year',  'mileage', 'location', 'description', 'image',
-                   'modified_date']
+    cars=[]
+    cars_count = len(response_json['data']['ads'])
+    for i in range(cars_count):
+        car = response_json['data']['ads'][i]['detail']
+        detail_keys = ['url', 'title', 'time', 'year',  'mileage', 'location', 'description', 'image',
+                       'modified_date']
 
-    price = response_json['data']['ads'][0]['price']['price']
-    values = [car[key] for key in detail_keys]
-    values.append(price)
-    return values
+        price = response_json['data']['ads'][0]['price']['price']
+        values = [car[key] for key in detail_keys]
+        values.append(price)
+        cars.append(values)
+    return cars
 
 async def fetch_data(session, url):
     async with sem:
@@ -62,7 +65,7 @@ async def fetch_all_data(urls):
         return results
 
 async def main():
-    urls = [f'https://bama.ir/cad/api/search?pageIndex={i}' for i in range(20)]
+    urls = [f'https://bama.ir/cad/api/search?pageIndex={i}' for i in range(10)]
 
     async with aiosqlite.connect('cars.db') as db:
         async with db.cursor() as cursor:
@@ -90,16 +93,17 @@ async def main():
                 async with db.cursor() as cursor:
                     insert_count = 0
                     start_time = time.time()
-                    for url, car in results:
-                        if not car:
+                    for url, cars in results:
+                        if not cars:
                             logger.error(f"Failed to fetch data from {url}")
                             continue
 
-                        await cursor.execute('''
-                            INSERT INTO cars_new (url, title, time, year, mileage, location, description, image, created_at, price)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                        ''', car)
-                        insert_count += 1
+                        for car in cars:
+                            await cursor.execute('''
+                                INSERT INTO cars_new (url, title, time, year, mileage, location, description, image, created_at, price)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                            ''', car)
+                            insert_count += 1
 
                     await db.commit()
                     end_time = time.time()
