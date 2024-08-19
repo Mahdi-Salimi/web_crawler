@@ -21,6 +21,7 @@ async def insert_data(results):
                         title TEXT,
                         time TEXT,
                         year TEXT,
+                        
                         image TEXT,
                         mileage TEXT,
                         location TEXT,

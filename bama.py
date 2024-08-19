@@ -2,16 +2,16 @@ import aiohttp
 import asyncio
 import time
 import logging
-from sqlite_conntection import insert_data
-
+from .sqlite_connection import insert_data
 
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-sem = asyncio.Semaphore(5) # in main
+sem = asyncio.Semaphore(5)
 def extract_car_json_data(response_json):
+    print(response_json)
     cars=[]
     cars_count = len(response_json['data']['ads'])
     for i in range(cars_count):
@@ -23,6 +23,7 @@ def extract_car_json_data(response_json):
         values = [car[key] for key in detail_keys]
         values.append(price)
         cars.append(values)
+        print(cars)
     return cars
 
 async def fetch_data(session, url):
@@ -67,7 +68,7 @@ async def fetch_all_data(urls):
         return results
 
 async def main():
-    urls = [f'https://bama.ir/cad/api/search?pageIndex={i}' for i in range(100)]
+    urls = [f'https://bama.ir/cad/api/search?pageIndex={i}' for i in range(1)]
     results = await fetch_all_data(urls)
     await insert_data(results)
 
