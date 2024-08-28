@@ -1071,7 +1071,7 @@ class TestExtractDataFunc:
         cars = TestExtractDataFunc.cars
         price = cars[0][-1]
         price = price.replace(',', '')
-        price = int(price)
+        price = int(price) # error not test
         assert isinstance(price, int)
 
     def test_car_parameter_length(self):
@@ -3253,6 +3253,7 @@ class TestFetchAllData:
                                                'breadcrump': {'links': [{'title': 'باما', 'url': '/'},
                                                                         {'title': 'خودرو', 'url': None}]},
                                                'pillar_content': None}}
+    # use generator
 
     @patch('aiohttp.ClientSession.get')
     async def test_fetch_all_data_success(self, mock_get):
