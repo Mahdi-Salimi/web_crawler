@@ -3,6 +3,8 @@ import time
 import re
 from datetime import datetime
 
+from decouple import config, Csv
+
 def parse_mileage(mileage_str):
     try:
         numeric_part = re.sub(r'[^\d.]', '', mileage_str)
@@ -19,7 +21,8 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = "mysql+pymysql://root:digitoon_bama@localhost:3306/cars_db"
+DATABASE_URL = config('DATABASE_URL')
+
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
